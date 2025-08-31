@@ -11,4 +11,9 @@
 
 #define TMP_DIR "/tmp/gprop/"
 
+#define DEFAULT_ZOOM 16
+
+#define DEFAULT_LON -78.789595
+#define DEFAULT_LAT 43.001806
+
 #endif

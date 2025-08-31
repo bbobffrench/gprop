@@ -24,7 +24,7 @@ initdl(Downloader *dl)
 }
 
 void
-freedl(Downloader *dl){
+dlcleanup(Downloader *dl){
 	TileTracker *curr, *next;
 
 	for(curr = dl->tracker; curr != NULL; curr = next){
