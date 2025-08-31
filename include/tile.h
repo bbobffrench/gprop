@@ -9,15 +9,7 @@ enum TileStatus {MISSING, PENDING, AVAILABLE};
 typedef enum TileStatus TileStatus;
 
 typedef struct TileTracker TileTracker;
-struct TileTracker{
-	TileStatus status;
-	int x;
-	int y;
-	int zoom;
-	CURL *curl;
-	Chunk *chunk;
-	TileTracker *next;
-};
+struct Tiletracker;
 
 typedef struct Downloader Downloader;
 struct Downloader{
