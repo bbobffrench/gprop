@@ -122,12 +122,16 @@ updatetextures(Map *map)
 
 			/* Check whether the tile is available locally */
 			if((fp = fopen(filename, "r")) != NULL){
-				surf = IMG_Load(filename);
-				curr->texture = SDL_CreateTextureFromSurface(map->r, surf);
-				SDL_FreeSurface(surf);
 				fclose(fp);
+				if((surf = IMG_Load(filename)) != NULL){
+					curr->texture = SDL_CreateTextureFromSurface(map->r, surf);
+					SDL_FreeSurface(surf);
+				}
+				/* If the load fails, request the tile if it is not already pending */
+				else if(tilestatus(&map->dl, curr->tx, curr->ty, map->zoom) != PENDING)
+					requesttile(&map->dl, curr->tx, curr->ty, map->zoom);
 			}
-			/* If not, request it only if the tile has not yet been requested */
+			/* If not, request it only if the tile isn't yet being tracked */
 			else if(tilestatus(&map->dl, curr->tx, curr->ty, map->zoom) == MISSING)
 				requesttile(&map->dl, curr->tx, curr->ty, map->zoom);
 			free(filename);
