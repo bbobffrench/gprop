@@ -6,6 +6,13 @@
 #include <stdlib.h>
 #include <math.h>
 
+struct Tile{
+	SDL_Texture *texture;
+	int tx;
+	int ty;
+	Tile *next;
+};
+
 static void
 addtile(Tile **tile, int tx, int ty)
 {
@@ -60,7 +67,7 @@ tiletexture(Map *map, int tx, int ty)
 void
 setlocation(Map *map, double lon, double lat)
 {
-	int width, height, tx, ty, px, py, available, txcurr, tycurr;
+	int width, height, tx, ty, px, py, available;
 
 	SDL_QueryTexture(map->maptexture, NULL, NULL, &width, &height);
 
@@ -93,11 +100,6 @@ setlocation(Map *map, double lon, double lat)
 	if(available >= width) map->ebound = tx;
 	else
 		map->ebound = tx + ceil(available / (double)TILE_DIMENSION);
-
-	/* Add all bounded tiles to the cache */
-	for(tycurr = map->nbound; tycurr <= map->sbound; tycurr++)
-		for(txcurr = map->wbound; txcurr <= map->ebound; txcurr++)
-			addtile(&map->tiles, txcurr, tycurr);
 }
 
 static void
@@ -117,15 +119,17 @@ updatetextures(Map *map)
 		/* If the tile is missing, initiate the tile download */
 		if(status == MISSING)
 			requesttile(&map->dl, curr->tx, curr->ty, map->zoom);
-		/* If the tile is available, load the downloaded PNG into a texture */
-		else if(status == AVAILABLE){
+		/* If the tile is available, load the downloaded PNG into a texture if not already done */
+		else if(status == AVAILABLE && curr->texture == NULL){
 			filenamelen = snprintf(NULL, 0, "%s%d-%d-%d.png", TMP_DIR, map->zoom, curr->tx, curr->ty);
 			filename = malloc(filenamelen + 1);
 			sprintf(filename, "%s%d-%d-%d.png", TMP_DIR, map->zoom, curr->tx, curr->ty);
 			surf = IMG_Load(filename);
 			free(filename);
-			if(surf != NULL)
+			if(surf != NULL){
 				curr->texture = SDL_CreateTextureFromSurface(map->r, surf);
+				SDL_FreeSurface(surf);
+			}
 		}
 	}
 }
@@ -141,20 +145,25 @@ updatemap(Map *map)
 
 	updatetextures(map);
 
+	/* Add all bounded tiles to the cache */
+	for(tycurr = map->nbound; tycurr <= map->sbound; tycurr++)
+		for(txcurr = map->wbound; txcurr <= map->ebound; txcurr++)
+			addtile(&map->tiles, txcurr, tycurr);
+
 	SDL_QueryTexture(map->maptexture, NULL, NULL, &width, &height);
 	SDL_SetRenderTarget(map->r, map->maptexture);
 
 	/* Copy each tile texture onto the main map texture */
-	xcurr = -map->xoffset;
-	for(txcurr = map->wbound; txcurr <= map->ebound; txcurr++){
-		ycurr = -map->yoffset;
-		for(tycurr = map->nbound; tycurr <= map->sbound; tycurr++){
+	ycurr = -map->yoffset;
+	for(tycurr = map->nbound; tycurr <= map->sbound; tycurr++){
+		xcurr = -map->xoffset;
+		for(txcurr = map->wbound; txcurr <= map->ebound; txcurr++){
 			dst.x = xcurr;
 			dst.y = ycurr;
 			SDL_RenderCopy(map->r, tiletexture(map, txcurr, tycurr), &src, &dst);
-			ycurr += TILE_DIMENSION;
+			xcurr += TILE_DIMENSION;
 		}
-		xcurr += TILE_DIMENSION;
+		ycurr += TILE_DIMENSION;
 	}
 	SDL_SetRenderTarget(map->r, NULL);
 }
@@ -206,5 +215,36 @@ mapcleanup(Map *map)
 	cleartiles(map->tiles);
 }
 
+void
+panmap(Map *map, int xoffset, int yoffset)
+{
+	map->xoffset += -xoffset;
+	map->yoffset += -yoffset;
+
+	/* If there is Y overflow, rebound the Y axis and stabilize the offset */
+	if(map->yoffset < 0){
+		for(; map->yoffset < 0; map->yoffset += TILE_DIMENSION){
+			map->nbound--;
+			map->sbound--;
+		}
+	} else{
+		for(; map->yoffset >= TILE_DIMENSION; map->yoffset -= TILE_DIMENSION){
+			map->nbound++;
+			map->sbound++;
+		}
+	}
+	/* If there is X overflow, rebound the X axis and stabilize the offset */
+	if(map->xoffset < 0){
+		for(; map->xoffset < 0; map->xoffset += TILE_DIMENSION){
+			map->wbound--;
+			map->ebound--;
+		}
+	} else{
+		for(; map->xoffset >= TILE_DIMENSION; map->xoffset -= TILE_DIMENSION){
+			map->wbound++;
+			map->ebound++;
+		}
+	}
+}
 
 

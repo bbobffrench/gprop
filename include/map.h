@@ -6,12 +6,7 @@
 #include <SDL2/SDL.h>
 
 typedef struct Tile Tile;
-struct Tile{
-	SDL_Texture *texture;
-	int tx;
-	int ty;
-	Tile *next;
-};
+struct Tile;
 
 typedef struct Map Map;
 struct Map{
@@ -36,9 +31,12 @@ void
 mapcleanup(Map *);
 
 void
+updatemap(Map *);
+
+void
 setlocation(Map *, double, double);
 
 void
-updatemap(Map *);
+panmap(Map *, int, int);
 
 #endif
