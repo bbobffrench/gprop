@@ -1,6 +1,8 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
+#define FPS 60
+
 #define USER_AGENT "gprop <bobfrenc@buffalo.edu>"
 
 #define NOMINATIM_URL "https://nominatim.openstreetmap.org/search?"

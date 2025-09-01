@@ -1,3 +1,4 @@
+#include "config.h"
 #include "map.h"
 
 #include <SDL2/SDL.h>
@@ -9,17 +10,20 @@ int
 main(int argc, char **argv)
 {
 	Map map;
-	int width, height, i;
+	int width, height;
 	SDL_Window *w;
 	SDL_Renderer *r;
-	SDL_Rect src, dst;
+	SDL_Rect rect;
+	SDL_Event e;
+	char running;
+	unsigned time;
 
 	width = 1024;
 	height = 768;
 
-	src.x = src.y = dst.x = dst.y = 0;
-	src.w = dst.w = width;
-	src.h = dst.h = height;
+	rect.x = rect.y = 0;
+	rect.w = width;
+	rect.h = height;
 
 	SDL_Init(SDL_INIT_VIDEO);
 	IMG_Init(IMG_INIT_PNG);
@@ -30,16 +34,27 @@ main(int argc, char **argv)
 		width, height,
 		SDL_WINDOW_SHOWN
 	);
-	r = SDL_CreateRenderer(w, -1, SDL_RENDERER_ACCELERATED);
+	r = SDL_CreateRenderer(w, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
 
 	initmap(&map, width, height, r);
 
-	for(i = 0; i < 100; i++){
+	running = 1;
+	while(running){
+		time = SDL_GetTicks();
+
 		updatemap(&map);
-		SDL_RenderCopy(r, map.maptexture, &src, &dst);
+		SDL_RenderCopy(r, map.maptexture, &rect, &rect);
 		SDL_RenderPresent(r);
-		SDL_Delay(50);
+
+		while(SDL_PollEvent(&e) != 0){
+			if(e.type == SDL_QUIT) running = 0;
+			if(e.type == SDL_MOUSEMOTION && e.motion.state & SDL_BUTTON(1))
+				panmap(&map, e.motion.xrel, e.motion.yrel);
+		}
+
+		SDL_Delay(fmax(0, 1000 / (double)FPS - SDL_GetTicks()));
 	}
+
 	mapcleanup(&map);
 	SDL_DestroyRenderer(r);
 	SDL_DestroyWindow(w);
