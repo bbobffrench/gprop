@@ -153,6 +153,7 @@ progress(Downloader *dl)
 			curr->curl = curl_easy_init();
 			curl_easy_setopt(curr->curl, CURLOPT_URL, request);
 			curl_easy_setopt(curr->curl, CURLOPT_USERAGENT, USER_AGENT);
+			curl_easy_setopt(curr->curl, CURLOPT_TIMEOUT, 3);
 			curl_easy_setopt(curr->curl, CURLOPT_WRITEFUNCTION, storechunk);
 			curl_easy_setopt(curr->curl, CURLOPT_WRITEDATA, curr);
 			curl_multi_add_handle(dl->multi, curr->curl);
