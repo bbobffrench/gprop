@@ -125,6 +125,7 @@ updatetextures(Map *map)
 				surf = IMG_Load(filename);
 				curr->texture = SDL_CreateTextureFromSurface(map->r, surf);
 				SDL_FreeSurface(surf);
+				fclose(fp);
 			}
 			/* If not, request it only if the tile has not yet been requested */
 			else if(tilestatus(&map->dl, curr->tx, curr->ty, map->zoom) == MISSING)
