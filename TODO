@@ -14,6 +14,3 @@ CPU
 
 Features
 - Add zoom to the map
-
-Bugs
-- Handle impossible tile requests in the tile module

@@ -89,7 +89,9 @@ tilestatus(Downloader *dl, int x, int y, int zoom)
 void
 requesttile(Downloader *dl, int x, int y, int zoom)
 {
-	updatetracker(&dl->tracker, MISSING, x, y, zoom);
+	/* Don't request a tile that does not exist */
+	if(x > 0 && y > 0 && x < pow(2, zoom) && y < pow(2, zoom))
+		updatetracker(&dl->tracker, MISSING, x, y, zoom);
 }
 
 static size_t
