@@ -45,7 +45,7 @@ updatetracker(TileTracker **tracker, TileStatus status, int x, int y, int zoom)
 {
 	TileTracker *curr, *prev;
 
-	/* Check if the tile is already and position to the last tile if not */
+	/* Check if the tile is already there and position to the last tile if not */
 	prev = NULL;
 	for(curr = *tracker; curr != NULL; curr = curr->next){
 		if(curr->x == x && curr->y == y && curr->zoom == zoom){
