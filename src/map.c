@@ -106,30 +106,30 @@ static void
 updatetextures(Map *map)
 {
 	Tile *curr;
-	TileStatus status;
-	SDL_Surface *surf;
 	int filenamelen;
 	char *filename;
+	FILE *fp;
+	SDL_Surface *surf;
 
 	dlsync(&map->dl);
 
 	for(curr = map->tiles; curr != NULL; curr = curr->next){
-		status = tilestatus(&map->dl, curr->tx, curr->ty, map->zoom);
-
-		/* If the tile is missing, initiate the tile download */
-		if(status == MISSING)
-			requesttile(&map->dl, curr->tx, curr->ty, map->zoom);
-		/* If the tile is available, load the downloaded PNG into a texture if not already done */
-		else if(status == AVAILABLE && curr->texture == NULL){
+		/* Check through each missing texture to see if a tile PNG is available */
+		if(curr->texture == NULL){
 			filenamelen = snprintf(NULL, 0, "%s%d-%d-%d.png", TMP_DIR, map->zoom, curr->tx, curr->ty);
 			filename = malloc(filenamelen + 1);
 			sprintf(filename, "%s%d-%d-%d.png", TMP_DIR, map->zoom, curr->tx, curr->ty);
-			surf = IMG_Load(filename);
-			free(filename);
-			if(surf != NULL){
+
+			/* Check whether the tile is available locally */
+			if((fp = fopen(filename, "r")) != NULL){
+				surf = IMG_Load(filename);
 				curr->texture = SDL_CreateTextureFromSurface(map->r, surf);
 				SDL_FreeSurface(surf);
 			}
+			/* If not, request it only if the tile has not yet been requested */
+			else if(tilestatus(&map->dl, curr->tx, curr->ty, map->zoom) == MISSING)
+				requesttile(&map->dl, curr->tx, curr->ty, map->zoom);
+			free(filename);
 		}
 	}
 }
