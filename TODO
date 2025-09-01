@@ -1,0 +1,19 @@
+Networking
+- Update the search module to receive data in chunks
+- Update the search module to include CURL timeouts
+
+Memory
+- Add download tracker cache management to the tile module
+- Add texture cache management to the map module
+
+Storage
+- Manage the local filesystem cache (reset if it grows too large)
+
+CPU
+- Only reconstruct and present the map texture if necessary
+
+Features
+- Add zoom to the map
+
+Bugs
+- Handle impossible tile requests in the tile module
