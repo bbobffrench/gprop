@@ -27,4 +27,4 @@ bin/gprop: bin/gprop.o bin/chunk.o bin/search.o bin/tile.o bin/map.o
 	${CC} $^ ${LDFLAGS} -o $@
 
 clean:
-	rm -rf bin
+	rm -rf bin/*.o bin/gprop
