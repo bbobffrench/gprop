@@ -215,7 +215,7 @@ latlon(int tx, int ty, int px, int py, int zoom, double *lon, double *lat)
 
 	/* Reproject to EPSG:4326 in radians */
 	*lon = x;
-	*lat = asin(-pow(1.0 + exp(2.0 * y), -0.5)) + atan(exp(y));
+	*lat = atan(sinh(y));
 
 	/* Convert lat and lon from radians to degrees */
 	*lon = (180 * *lon) / M_PI;
