@@ -10,9 +10,11 @@ struct Tile;
 
 typedef struct Map Map;
 struct Map{
-	SDL_Renderer *r;
 	SDL_Texture *maptexture;
 	SDL_Texture *missing;
+	SDL_Renderer *r;
+	int width;
+	int height;
 	int zoom;
 	int xoffset;
 	int yoffset;
@@ -37,6 +39,15 @@ void
 setlocation(Map *, double, double);
 
 void
+mapcoords(Map *, int, int, double *, double *);
+
+void
 panmap(Map *, int, int);
+
+void
+incmapzoom(Map *);
+
+void
+decmapzoom(Map *);
 
 #endif

@@ -14,7 +14,7 @@
 #define TMP_DIR "/tmp/gprop/"
 
 #define DEFAULT_ZOOM 16
-#define ZOOM_MIN 8
+#define ZOOM_MIN 12
 #define ZOOM_MAX 19
 
 #define DEFAULT_LON -78.789595

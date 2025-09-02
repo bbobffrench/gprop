@@ -63,44 +63,26 @@ tiletexture(Map *map, int tx, int ty)
 	return map->missing;
 }
 
-/* Set offsets and map bounds so that the supplied coordinate is centered */
 void
 setlocation(Map *map, double lon, double lat)
 {
-	int width, height, tx, ty, px, py, available;
+    int tx, ty, px, py, xctr, yctr;
 
-	SDL_QueryTexture(map->maptexture, NULL, NULL, &width, &height);
+    tilecoords(lon, lat, map->zoom, &tx, &ty, &px, &py);
+    xctr = map->width / 2;
+    yctr = map->height / 2;
 
-	/* Set the pixel offset so that the coordinate is centered */
-	tilecoords(lon, lat, map->zoom, &tx, &ty, &px, &py);
+	/* Calculate bounds and pixel offsets on the Y axis */
+	map->nbound = ty - (yctr - py + TILE_DIMENSION) / TILE_DIMENSION;
+	map->sbound = ty + (map->height - (yctr - py)) / TILE_DIMENSION;
+	map->yoffset = TILE_DIMENSION - (yctr - py + TILE_DIMENSION) % TILE_DIMENSION;
 
-	map->xoffset = px;
-	map->yoffset = py;
-
-	/* Set northernmost tile index */
-	available = height / 2 - py;
-	if(available <= 0) map->nbound = ty;
-	else
-		map->nbound = ty - ceil(available / (double)TILE_DIMENSION);
-
-	/* Set southernmost tile index */
-	available = height - (height / 2 - py + TILE_DIMENSION);
-	if(available >= height) map->sbound = ty;
-	else
-		map->sbound = ty + ceil(available / (double)TILE_DIMENSION);
-
-	/* Set westernmost tile index */
-	available = width / 2 - px;
-	if(available <= 0) map->wbound = tx;
-	else
-		map->wbound = tx - ceil(available / (double)TILE_DIMENSION);
-
-	/* Set easternmost tile index */
-	available = width - (width / 2 - px + TILE_DIMENSION);
-	if(available >= width) map->ebound = tx;
-	else
-		map->ebound = tx + ceil(available / (double)TILE_DIMENSION);
+	/* Calculate bounds and pixel offsets on the X axis */
+	map->wbound = tx - (xctr - px + TILE_DIMENSION) / TILE_DIMENSION;
+	map->ebound = tx + (map->width - (xctr - px)) / TILE_DIMENSION;
+	map->xoffset = TILE_DIMENSION - (xctr - px + TILE_DIMENSION) % TILE_DIMENSION;
 }
+
 
 static void
 updatetextures(Map *map)
@@ -142,23 +124,19 @@ updatetextures(Map *map)
 void
 updatemap(Map *map)
 {
-	int width, height, txcurr, tycurr, xcurr, ycurr;
+	int txcurr, tycurr, xcurr, ycurr;
 	SDL_Rect src, dst;
 
 	src.x = src.y = 0;
 	src.w = src.h = dst.w = dst.h = TILE_DIMENSION;
-
-	updatetextures(map);
 
 	/* Add all bounded tiles to the cache */
 	for(tycurr = map->nbound; tycurr <= map->sbound; tycurr++)
 		for(txcurr = map->wbound; txcurr <= map->ebound; txcurr++)
 			addtile(&map->tiles, txcurr, tycurr);
 
-	SDL_QueryTexture(map->maptexture, NULL, NULL, &width, &height);
-	SDL_SetRenderTarget(map->r, map->maptexture);
-
 	/* Copy each tile texture onto the main map texture */
+	SDL_SetRenderTarget(map->r, map->maptexture);
 	ycurr = -map->yoffset;
 	for(tycurr = map->nbound; tycurr <= map->sbound; tycurr++){
 		xcurr = -map->xoffset;
@@ -171,6 +149,8 @@ updatemap(Map *map)
 		ycurr += TILE_DIMENSION;
 	}
 	SDL_SetRenderTarget(map->r, NULL);
+
+	updatetextures(map);
 }
 
 void
@@ -179,6 +159,8 @@ initmap(Map *map, int width, int height, SDL_Renderer *r)
 	SDL_Rect outline;
 
 	map->r = r;
+	map->width = width;
+	map->height = height;
 	map->zoom = DEFAULT_ZOOM;
 	map->tiles = NULL;
 
@@ -221,6 +203,20 @@ mapcleanup(Map *map)
 }
 
 void
+mapcoords(Map *map, int x, int y, double *lon, double *lat)
+{
+	int tx, ty, px, py;
+
+	/* Recover the tile and pixel indices of the requested point */
+	tx = map->wbound + (x + map->xoffset) / TILE_DIMENSION;
+	ty = map->nbound + (y + map->yoffset) / TILE_DIMENSION;
+	px = (x + map->xoffset) % TILE_DIMENSION;
+	py = (y + map->yoffset) % TILE_DIMENSION;
+
+	latlon(tx, ty, px, py, map->zoom, lon, lat);
+}
+
+void
 panmap(Map *map, int xoffset, int yoffset)
 {
 	map->xoffset += -xoffset;
@@ -252,4 +248,35 @@ panmap(Map *map, int xoffset, int yoffset)
 	}
 }
 
+static void
+setzoom(Map *map, int zoom)
+{
+	double lon, lat;
 
+	/* Ensure that the requested zoom is legal */
+	if(zoom < ZOOM_MIN || zoom > ZOOM_MAX)
+		return;
+
+	/* Get the geographical coordinates of the maps central point */
+	mapcoords(map, map->width / 2, map->height / 2, &lon, &lat);
+
+	/* Recenter the map on this coordinate with the new zoom applied */
+	map->zoom = zoom;
+	setlocation(map, lon, lat);
+
+	/* Remove tiles of the previous zoom level */
+	cleartiles(map->tiles);
+	map->tiles = NULL;
+}
+
+void
+incmapzoom(Map *map)
+{
+	setzoom(map, map->zoom + 1);
+}
+
+void
+decmapzoom(Map *map)
+{
+	setzoom(map, map->zoom - 1);
+}

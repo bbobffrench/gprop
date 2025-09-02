@@ -12,5 +12,3 @@ Storage
 CPU
 - Only reconstruct and present the map texture if necessary
 
-Features
-- Add zoom to the map

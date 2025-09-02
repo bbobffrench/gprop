@@ -18,8 +18,8 @@ main(int argc, char **argv)
 	char running;
 	unsigned time;
 
-	width = 1024;
-	height = 768;
+	width = 780;
+	height = 789;
 
 	rect.x = rect.y = 0;
 	rect.w = width;
@@ -34,7 +34,7 @@ main(int argc, char **argv)
 		width, height,
 		SDL_WINDOW_SHOWN
 	);
-	r = SDL_CreateRenderer(w, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+	r = SDL_CreateRenderer(w, -1, SDL_RENDERER_ACCELERATED);
 
 	initmap(&map, width, height, r);
 
@@ -48,16 +48,25 @@ main(int argc, char **argv)
 
 		while(SDL_PollEvent(&e) != 0){
 			if(e.type == SDL_QUIT) running = 0;
+
 			if(e.type == SDL_MOUSEMOTION && e.motion.state & SDL_BUTTON(1))
 				panmap(&map, e.motion.xrel, e.motion.yrel);
+
+			else if(e.type == SDL_KEYDOWN){
+				if(e.key.keysym.sym == SDLK_EQUALS && e.key.keysym.mod & KMOD_SHIFT)
+					incmapzoom(&map);
+				else if(e.key.keysym.sym == SDLK_MINUS)
+					decmapzoom(&map);
+			}
 		}
 
-		SDL_Delay(fmax(0, 1000 / (double)FPS - SDL_GetTicks()));
+		SDL_Delay(fmax(0, 1000 / (double)FPS - (time - SDL_GetTicks())));
 	}
 
 	mapcleanup(&map);
 	SDL_DestroyRenderer(r);
 	SDL_DestroyWindow(w);
-	SDL_Quit();
 	IMG_Quit();
+	SDL_Quit();
+	return 0;
 }
