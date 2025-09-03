@@ -1,4 +1,5 @@
 #include "config.h"
+#include "chunk.h"
 #include "search.h"
 
 #include <curl/curl.h>
@@ -39,15 +40,20 @@ freesearch(OSMSearch *search)
 }
 
 static size_t
-writesearch(char *data, size_t size, size_t nmemb, void *ptr)
+storechunk(char *data, size_t size, size_t nmemb, void *ptr)
 {
-	OSMSearch **search;
+	addchunk((Chunk **)ptr, data, size * nmemb);
+	return size * nmemb;
+}
+
+static void
+parseresponse(OSMSearch **search, char *data)
+{
 	cJSON *json, *iter, *field;
 	char *name;
 	double lon, lat;
 
-	json = cJSON_ParseWithLength(data, size * nmemb);
-	search = (OSMSearch **)ptr;
+	json = cJSON_Parse(data);
 	cJSON_ArrayForEach(iter, json){
 		field = cJSON_GetObjectItemCaseSensitive(iter, "display_name");
 		name = malloc(strlen(field->valuestring) + 1);
@@ -62,16 +68,16 @@ writesearch(char *data, size_t size, size_t nmemb, void *ptr)
 		addsearchres(search, name, lon, lat);
 	}
 	cJSON_Delete(json);
-	return size * nmemb;
 }
 
 OSMSearch *
 geosearch(char *query)
 {
 	CURL *curl;
-	char *escaped, *request;
+	char *escaped, *request, *data;
 	int requestlen;
 	OSMSearch *res;
+	Chunk *chunk;
 
 	curl = curl_easy_init();
 
@@ -80,14 +86,26 @@ geosearch(char *query)
 	request = malloc(requestlen + 1);
 	sprintf(request, "%sq=%s&format=json", NOMINATIM_URL, escaped);
 
-	curl_easy_setopt(curl, CURLOPT_URL, request);
-	curl_easy_setopt(curl, CURLOPT_USERAGENT, USER_AGENT);
-	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writesearch);
-	curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&res);
-
+	/* Retry until the response is received successfully */
+	chunk = NULL;
 	res = NULL;
-	curl_easy_perform(curl);
+	while(1){
+		curl_easy_setopt(curl, CURLOPT_URL, request);
+		curl_easy_setopt(curl, CURLOPT_USERAGENT, USER_AGENT);
+		curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10);
+		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, storechunk);
+		curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&chunk);
+		if(curl_easy_perform(curl) == CURLE_OK){
+			data = concatchunks(chunk);
+			break;
+		} else{
+			freechunks(chunk);
+			chunk = NULL;
+		}
+	}
+	parseresponse(&res, data);
 
+	free(data);
 	free(request);
 	curl_free(escaped);
 	curl_easy_cleanup(curl);

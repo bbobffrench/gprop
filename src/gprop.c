@@ -1,5 +1,6 @@
 #include "config.h"
 #include "map.h"
+#include "search.h"
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
@@ -17,6 +18,14 @@ main(int argc, char **argv)
 	SDL_Event e;
 	char running;
 	unsigned time;
+	OSMSearch *search;
+
+	search = geosearch(argv[1]);
+	if(search == NULL){
+		fprintf(stderr, "No search results\n");
+		return 1;
+	}
+	else printf("Positioning map at %s\n", search->name);
 
 	width = 780;
 	height = 789;
@@ -37,6 +46,7 @@ main(int argc, char **argv)
 	r = SDL_CreateRenderer(w, -1, SDL_RENDERER_ACCELERATED);
 
 	initmap(&map, width, height, r);
+	setlocation(&map, search->lon, search->lat);
 
 	running = 1;
 	while(running){
